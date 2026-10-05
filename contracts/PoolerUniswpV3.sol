@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-
+// Deployments : 
+//  Polygon : 0xe6a3bbcb8423b5a00a370b284a75a609b75317ac
 
 
 import "./IPooler.sol";
+import './TransferHelper.sol';
 
 
 interface IQuoterV2 
@@ -97,6 +99,12 @@ contract PoolerUniswpV3 is IPooler {
         IRouterV3.ExactInputSingleParams memory oParams;
         uint256 nAmountOut;        
 
+        // Transfer the specified amount of tokenIn to this contract.
+        TransferHelper.safeTransferFrom(oTokenIn, msg.sender, address(this), nAmountInt);
+
+        // Approve the router to spend tokenIn.
+        TransferHelper.safeApprove(oTokenIn, address(m_oRouter), nAmountInt);
+
         nTickSpace = 0;
         oParams.tokenIn = oTokenIn;
         oParams.tokenOut = oTokenOut;
@@ -107,7 +115,7 @@ contract PoolerUniswpV3 is IPooler {
         oParams.sqrtPriceLimitX96 = 0;
 
         nAmountOut = m_oRouter.exactInputSingle(oParams);
-        return 0;
+        return nAmountOut;
     }
 
 }
