@@ -2,8 +2,8 @@
 pragma solidity >=0.8.0;
 
 // Deployments : 
-//  Polygon : 0xe6a3bbcb8423b5a00a370b284a75a609b75317ac
-
+//  Polygon : 
+//      UniswapV3 : 0x0cface4e70a27ad9d6dc9178009b30b556cac8d1
 
 import "./IPooler.sol";
 import './TransferHelper.sol';
@@ -57,20 +57,20 @@ Uniswap V3 Pool pricer and swapper
 
 
 contract PoolerUniswpV3 is IPooler {
-  /**
-   * @dev Prints Hello World string
-   */
-    function findPool() external view returns (address)
+  
+    function getName() external view returns (string memory)
     {
-        return address(this);
+        return m_strName;
     }
 
     IQuoterV2 private m_oQuoter;
     IRouterV3 private m_oRouter;
-    constructor( address oQuoter, address oRouter )
+    string      private m_strName;
+    constructor( address oQuoter, address oRouter, string memory strName )
     {
         m_oQuoter = IQuoterV2(oQuoter);
         m_oRouter = IRouterV3(oRouter);
+        m_strName = strName;
     }
 
 

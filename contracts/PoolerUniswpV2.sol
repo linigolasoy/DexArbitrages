@@ -3,8 +3,8 @@ pragma solidity >=0.8.0;
 
 // Deployments : 
 //  Polygon : 
-//      UniswapV2   : 0x4e31724eca6152df6922638b1f471590206363f9
-//      QuickSwapV2 : 0x8653a2ce280ccf858d8f99bc8271535329cbad12
+//      UniswapV2   : 0x625cc34189ad8007aaa3b184edd3bc3b46fd74d0
+//      QuickSwapV2 : 0x45c3885d3639b5b04c7302d1f9ae34d5e918d229
 
 import "./IPooler.sol";
 import './TransferHelper.sol';
@@ -37,18 +37,18 @@ Uniswap V2 Pool pricer and swapper
 
 
 contract PoolerUniswpV2 is IPooler {
-  /**
-   * @dev Prints Hello World string
-   */
-    function findPool() external view returns (address)
+
+    function getName() external view returns (string memory)
     {
-        return address(this);
+        return m_strName;
     }
 
     IRouterV2 private m_oRouter;
-    constructor( address oRouter )
+    string      private m_strName;
+    constructor( address oRouter, string memory strName )
     {
         m_oRouter = IRouterV2(oRouter);
+        m_strName = strName;
     }
 
 
@@ -70,8 +70,9 @@ contract PoolerUniswpV2 is IPooler {
     function doSwap( address oTokenIn, address oTokenOut, uint24 nFee, uint24 nTickSpace, uint256 nAmountInt) 
         external returns (uint256)
     {
-        address[] memory aPath;
+        address[] memory aPath = new address[](2); //  = [oTokenIn, oTokenOut];
         uint256[] memory aOut;
+        uint256 deadline = block.timestamp + 1800;
 
         aPath[0] = oTokenIn;
         aPath[1] = oTokenOut;
@@ -89,11 +90,11 @@ contract PoolerUniswpV2 is IPooler {
             0,
             aPath,
             address(msg.sender),
-            0
+            deadline
         );
 
 
-        return aOut[1];
+        return (aOut.length > 1 ? aOut[1] : 0);
     }
 
 }

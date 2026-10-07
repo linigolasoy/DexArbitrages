@@ -6,7 +6,7 @@ interface IPooler
   /**
    * @dev Prints Hello World string
    */
-  function findPool() external view returns (address);
+  function getName() external view returns (string memory);
 
   function getAmountOut( address oTokenIn, address oTokenOut, uint24 nFee, uint24 nTickSpace, uint256 nAmountInt) 
     external returns (uint256);
