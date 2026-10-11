@@ -2,18 +2,24 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 
-import './IERC20.sol';
+// import './IERC20.sol';
 import "./IPooler.sol";
 import "./IPoolerManager.sol";
 import "./IArbitrager.sol";
 import './TransferHelper.sol';
+
+import "@aave/core-v3/contracts/dependencies/openzeppelin/contracts/Strings.sol";
+import "@aave/core-v3/contracts/flashloan/base/FlashLoanSimpleReceiverBase.sol";
+import "@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol";
+import "./IERC20.sol";
+
 
 // Deployments :
 //      Polygon :   0x6A9c19Ff046B578356b2C696Cd8565fe9dD1205f    
 
 // Pooler manager
 
-contract ArbitragerFlash is IArbitrager
+contract ArbitragerFlash is FlashLoanSimpleReceiverBase, IArbitrager
 {
 
     IPoolerManager private m_oPoolerManager;
@@ -23,7 +29,11 @@ contract ArbitragerFlash is IArbitrager
     /////////////////////////////////////////////////////////////////////// 
     // Constructor
     // @param oPoolerManager
-    constructor( address oPoolerManager )
+    constructor( 
+        address oPoolerManager,
+        address oAddressProvider
+     )
+     FlashLoanSimpleReceiverBase(IPoolAddressesProvider(oAddressProvider))
     {
         m_oPoolerManager = IPoolerManager(oPoolerManager);
         _owner = msg.sender;
@@ -58,7 +68,7 @@ contract ArbitragerFlash is IArbitrager
     function doSwapsInternal( 
         uint256 nAmountIn, 
         address oTokenIn,
-        ArbitrageSwapParams[] calldata aRoute
+        ArbitrageSwapParams[] memory aRoute
     ) public returns (address, uint256)
     {
         address oTokenAct = oTokenIn;
@@ -83,7 +93,7 @@ contract ArbitragerFlash is IArbitrager
 
             oTokenAct = aRoute[i].tokenOut;
         }
-        return (oTokenAct, 0);
+        return (oTokenAct, nAmountActual);
     }
 
 
@@ -180,81 +190,81 @@ contract ArbitragerFlash is IArbitrager
         return nAmountOut;
     }
 
+    /////////////////////////////////////////////////////////////////////// 
+    /// Arbitrage swapping with flash loan, requires result to be positive
+    /// @param nAmountIn    - Amount of token In
+    /// @param oTokenIn     - Address of token in
+    /// @param aRoute       - Swap route
+    /// @return             - Amount out
     function doArbitrageFlashLoan( 
         uint256 nAmountIn, 
         address oTokenIn,
         ArbitrageSwapParams[] calldata aRoute
     ) external returns (uint256)
     {
-        return 0;
-    }
+        address oSender = msg.sender;
+        // Check output address
+        address oTokenOutAddress = aRoute[aRoute.length-1].tokenOut;
+        require(oTokenOutAddress == oTokenIn, "token output different from input");
 
 
+        bytes memory aData = abi.encode(aRoute);
+        // TransferHelper.safeTransferFrom(oTokenIn, oSender, address(this), 1000);
 
-    function doArbitrageSimple( 
-        uint256 nAmountIn, 
-        address oTokenIn,
-        ArbitrageSwapParams calldata oRouteIn,
-        ArbitrageSwapParams calldata oRouteOut
-    ) external returns (uint256)
-    {
-        TransferHelper.safeTransferFrom(oTokenIn, msg.sender, address(this), nAmountIn);
-
-        // Pooler in swap
-        IERC20 oTokenErcIn = IERC20(oTokenIn);
-        IERC20 oTokenErcOut = IERC20(oRouteIn.tokenOut);
-
-        address oActiveIn = oTokenIn;
-        uint256 nAmountActual = nAmountIn;
-
-        IPooler oPoolerIn = m_oPoolerManager.getPooler(oRouteIn.pooler);
-        if( nAmountActual > 0 )
-        {
-            TransferHelper.safeApprove(oActiveIn, address(oPoolerIn), nAmountActual);
-            uint256 nAmountOut = oPoolerIn.doSwap( oActiveIn, oRouteIn.tokenOut, oRouteIn.fee, oRouteIn.tickSpace, nAmountActual);
-            oActiveIn = oRouteIn.tokenOut;
-            nAmountActual = oTokenErcOut.balanceOf(address(this));
-        }
-
-
-        IPooler oPoolerOut = m_oPoolerManager.getPooler(oRouteOut.pooler);
-        if( nAmountActual > 0 )
-        {
-            TransferHelper.safeApprove(oActiveIn, address(oPoolerOut), nAmountActual);
-            uint256 nAmountOut = oPoolerOut.doSwap( oActiveIn, oRouteOut.tokenOut, oRouteOut.fee, oRouteOut.tickSpace, nAmountActual);
-            oActiveIn = oRouteOut.tokenOut;
-            nAmountActual = nAmountOut;
-        }
-
-
-        /*
-        address oTokenOut = aRoute[i].tokenOut;
-            uint256 nPooler = aRoute[i].pooler;
-            address oPoolerAddress = m_oPoolerManager.getPoolerAddress(nPooler);
-            IPooler oPooler = IPooler(oPoolerAddress);
-            uint24 nFee = aRoute[i].fee;
-            uint24 nTick = aRoute[i].tickSpace;
-
-            if( nAmountActual > 0 )
-            {
-                TransferHelper.safeApprove(oActiveIn, address(oPooler), nAmountActual);
-                uint256 nAmountOut = oPooler.doSwap( oActiveIn, oTokenOut, nFee, nTick, nAmountActual);
-                oActiveIn = oTokenOut;
-                nAmountActual = nAmountOut;
-            }
-        }
-        */
-
-        uint256 nBalance = oTokenErcIn.balanceOf(address(this));
-
+        POOL.flashLoanSimple(
+            address(this),
+            oTokenIn,
+            nAmountIn,
+            aData,
+            0 // referral code
+        );
         
-
+        IERC20 oErcTokenIn = IERC20(oTokenIn);
+        uint256 nBalance = oErcTokenIn.balanceOf(address(this));
         if( nBalance > 0 )
         {
-            oTokenErcIn.transfer(msg.sender, nBalance);
-            // TransferHelper.safeTransferFrom(oTokenIn, address(this), msg.sender, nBalance);
+            oErcTokenIn.transfer( oSender, nBalance );
         }
-        
-        return nAmountActual;
+        return nBalance;
     }
+
+    function  executeOperation(
+        address asset,
+        uint256 amount,
+        uint256 premium,
+        address initiator,
+        bytes calldata params
+    )  external override returns (bool) {
+        
+
+        ArbitrageSwapParams[] memory aParams = abi.decode(params, (ArbitrageSwapParams[]));
+
+
+        (, uint256 nAmount) = doSwapsInternal( 
+            amount, 
+            asset,
+            aParams );
+
+        //Logic goes here
+        /*
+        require(false, string.concat("Inside execute amount(", 
+                    Strings.toString(amount),
+                    ") prem(",
+                    Strings.toString(premium),
+                    ")"));
+
+        */                    
+        uint256 totalAmount = amount + premium;
+        require(nAmount > totalAmount, string.concat( 
+            "Unprofitable arbitrage, swap result = ",
+            Strings.toString(nAmount),
+            " and required = ",
+            Strings.toString(totalAmount)));
+        
+        IERC20(asset).approve(address(POOL), totalAmount);
+
+        return true;
+    }
+
+    receive() external payable {}
 }

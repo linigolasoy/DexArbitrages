@@ -1,5 +1,6 @@
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import { configVariable, defineConfig } from "hardhat/config";
+import type { arbitrum } from "viem/chains";
 // import type { polygon } from "viem/chains";
 
 export default defineConfig({
@@ -34,6 +35,12 @@ export default defineConfig({
       chainType: "l1",
       url: configVariable("POLYGON_RPC_URL"),
       accounts: [configVariable("POLYGON_PRIVATE_KEY")],
+    },
+    arbitrum: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("ARBITRUM_RPC_URL"),
+      accounts: [configVariable("ARBITRUM_PRIVATE_KEY")]
     },
   },
 });

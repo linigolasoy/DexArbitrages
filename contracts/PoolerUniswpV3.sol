@@ -37,6 +37,7 @@ interface IRouterV3
         address tokenOut;
         uint24 fee;
         address recipient;
+        uint256 deadline;
         uint256 amountIn;
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
@@ -63,6 +64,7 @@ contract PoolerUniswpV3 is IPooler {
         return m_strName;
     }
 
+
     IQuoterV2 private m_oQuoter;
     IRouterV3 private m_oRouter;
     string      private m_strName;
@@ -73,6 +75,11 @@ contract PoolerUniswpV3 is IPooler {
         m_strName = strName;
     }
 
+
+    function getRouter() public view returns (address)
+    {
+        return address(m_oRouter);
+    }
 
     function getAmountOut( address oTokenIn, address oTokenOut, uint24 nFee, uint24 nTickSpace, uint256 nAmountInt)
         external returns (uint256)
@@ -104,12 +111,14 @@ contract PoolerUniswpV3 is IPooler {
 
         // Approve the router to spend tokenIn.
         TransferHelper.safeApprove(oTokenIn, address(m_oRouter), nAmountInt);
+        uint256 deadline = block.timestamp + 1800;
 
         nTickSpace = 0;
         oParams.tokenIn = oTokenIn;
         oParams.tokenOut = oTokenOut;
         oParams.fee = nFee;
         oParams.recipient = address(msg.sender);
+        oParams.deadline = deadline;
         oParams.amountIn = nAmountInt;
         oParams.amountOutMinimum = 0;
         oParams.sqrtPriceLimitX96 = 0;

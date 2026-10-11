@@ -73,6 +73,7 @@ contract PoolerUniswpV2 is IPooler {
         address[] memory aPath = new address[](2); //  = [oTokenIn, oTokenOut];
         uint256[] memory aOut;
         uint256 deadline = block.timestamp + 1800;
+        IERC20 oErcTokenIn = IERC20(oTokenIn);
 
         aPath[0] = oTokenIn;
         aPath[1] = oTokenOut;
@@ -83,13 +84,13 @@ contract PoolerUniswpV2 is IPooler {
         TransferHelper.safeTransferFrom(oTokenIn, msg.sender, address(this), nAmountInt);
 
         // Approve the router to spend tokenIn.
-        TransferHelper.safeApprove(oTokenIn, address(m_oRouter), nAmountInt);
+        oErcTokenIn.approve(address(m_oRouter), nAmountInt);
 
         aOut = m_oRouter.swapExactTokensForTokens(
             nAmountInt,
             0,
             aPath,
-            address(msg.sender),
+            msg.sender,
             deadline
         );
 

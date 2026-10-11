@@ -6,7 +6,10 @@ const client = await viem.getPublicClient();
 console.log(`Deploying Counter to ${networkName}...`);
 
 const counter = await viem.deployContract("PoolerUniswpV3", 
-    ["0x61fFE014bA17989E743c5F6cB21bF9697530B21e", "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45", "UniswapV3"]);
+    [
+        "0x61fFE014bA17989E743c5F6cB21bF9697530B21e", // Quoter
+        "0xE592427A0AEce92De3Edee1F18E0157C05861564", // Router
+        "UniswapV3"]);
 
 console.log("PoolerUniswpV3 address:", counter.address);
 

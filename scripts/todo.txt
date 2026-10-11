@@ -1,0 +1,15 @@
+OK 1.- Put some USDC on arbitrum.
+OK 2.- Test swap unsiwap3 USDC to USDT
+3.- Test swap unsiwap2 USDC to USDT
+4.- Test arbitrager.
+5.- Pancake swap pooler.
+6.- List other poolers.
+
+10.- Get token list.
+11.- Get base list and quantities.
+12.- Get pool list
+13.- Pool list combination 2 coins
+14.- Pool list combination 3 coins
+15.- Do arbitrages
+16.- Logging 
+

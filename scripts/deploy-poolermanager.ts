@@ -5,9 +5,16 @@ const client = await viem.getPublicClient();
 
 console.log(`Deploying PoolerManager to ${networkName}...`);
 
-const counter = await viem.deployContract("PoolerManager");
+const oPooler = await viem.deployContract("PoolerManager");
 
-console.log("PoolerManager address:", counter.address);
+console.log("PoolerManager address:", oPooler.address);
+
+const oTx1 = await oPooler.write.newPooler(["0x4e31724eca6152df6922638b1f471590206363f9"]);
+await client.waitForTransactionReceipt({ hash: oTx1, confirmations: 1 });
+
+const oTx2 = await oPooler.write.newPooler(["0xae61f44baff83f29092f556576475515c9190bd6"]);
+await client.waitForTransactionReceipt({ hash: oTx2, confirmations: 1 });
+
 
 // console.log("Calling counter.incBy(5)");
 // const tx = await counter.write.incBy([5n]);
